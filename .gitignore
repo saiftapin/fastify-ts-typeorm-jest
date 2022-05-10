@@ -1,1 +1,5 @@
 node_modules
+src/modules/.DS_Store
+ormconfig copy.json
+.env
+.DS_Store
