@@ -1,0 +1,10 @@
+# Generated using FASTIFY-Generator
+
+npx fastify-typescript-generator
+
+https://github.com/YegorZaremba/typeorm-mock-unit-testing-example
+
+
+
+
+https://javascript.plainenglish.io/create-a-rest-api-with-express-postgresql-typeorm-and-typescript-ac42a20b66c7
