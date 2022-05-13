@@ -54,26 +54,25 @@ export default fp(async (server : IServerWithDB) => {
 
 		const getTokenTransactions = async () => {
 			return await server.db.connection
-			.getRepository(TokenTransaction)
-			.createQueryBuilder('tt')
-			.leftJoinAndSelect('tt.token', 'token')
-			.leftJoinAndSelect('tt.user', 'user')
-			.select(['user._id', 'tt._id', 'user.name', 'token.name', 'tt.created_at']) 
-			.addSelect('GROUP_CONCAT(tt._id)', 'tt_ids')
-			.addSelect('DATE(tt.created_at)', 'date_at')
-			.addSelect('strftime(\'%H\', tt.created_at)', 'hour_at')
-			.addSelect('GROUP_CONCAT(tt._id)', 'tt_ids')
-			.addSelect('SUM(tt.quantity)', 'total_qty')
-			.addSelect('ROUND(SUM(tt.quantity) * token.usd_per_unit, 4)', 'total_usd')
-			.where("tt.locked = :locked", { locked: 0 })
-			.andWhere(`tt.created_at < strftime('%Y-%m-%d %H:00:00', 'now')`)
-			.groupBy('tt.user_id, tt.token_id, date_at, hour_at')
-			.limit(10)
-			.getRawMany();
-		}
+				.getRepository(TokenTransaction)
+				.createQueryBuilder('tt')
+				.leftJoinAndSelect('tt.token', 'token')
+				.leftJoinAndSelect('tt.user', 'user')
+				.select(['user._id', 'tt._id', 'user.name', 'token.name', 'tt.created_at']) 
+				.addSelect('GROUP_CONCAT(tt._id)', 'tt_ids')
+				.addSelect('DATE(tt.created_at)', 'date_at')
+				.addSelect('strftime(\'%H\', tt.created_at)', 'hour_at')
+				.addSelect('GROUP_CONCAT(tt._id)', 'tt_ids')
+				.addSelect('SUM(tt.quantity)', 'total_qty')
+				.addSelect('ROUND(SUM(tt.quantity) * token.usd_per_unit, 4)', 'total_usd')
+				.where('tt.locked = :locked', { locked: 0 })
+				.andWhere('tt.created_at < strftime(\'%Y-%m-%d %H:00:00\', \'now\')')
+				.groupBy('tt.user_id, tt.token_id, date_at, hour_at')
+				.limit(10)
+				.getRawMany();
+		};
 
 		const tokenAccount = await createNewAccount({name: 'CompanyAcc', balance: 0});
-
 
 		const addToAccounts = async (record: any) => {
 			console.log(record);
@@ -98,25 +97,22 @@ export default fp(async (server : IServerWithDB) => {
 					});
 
 					await getRepository(TokenTransaction).createQueryBuilder()
-					.update()
-					.set({ locked: true})
-					.where("_id IN (:...ids)", { ids: record.tt_ids.split(',') })
-					.execute();
+						.update()
+						.set({ locked: true})
+						.where('_id IN (:...ids)', { ids: record.tt_ids.split(',') })
+						.execute();
 				}
 			});
-		}
-
+		};
 
 		let hasRecords = true;
 		while(hasRecords) {
 			const tokenRecords = await getTokenTransactions();
 			for await(const record of tokenRecords){
 				await addToAccounts(record);
-			};
-			hasRecords = tokenRecords.length > 0
+			}
+			hasRecords = tokenRecords.length > 0;
 		} 
-
-
 
 
 		// server.register(fastifyCron, {

@@ -36,6 +36,7 @@ export default function transactionsHandler(server, options, next) {
 				const { sum } = await getRepository(TokenTransaction)
 					.createQueryBuilder('tt')
 					.select('SUM(tt.quantity)', 'sum')
+					// eslint-disable-next-line quotes
 					.where(`DATE(tt.created_at) = strftime('%Y-%m-%d', 'now') AND tt.user_id = :user_id AND tt.token_id = :token_id`, { user_id, token_id })
 					.groupBy('DATE(tt.created_at)')
 					.getRawOne().then((data) => {

@@ -61,7 +61,7 @@ export const deleteTransactionSchema = {
 export const addTransactionSchema = {
 	summary: 'Add Transaction',
 	tags: ['transaction'],
-	description: 'add Transaction',
+	description: 'API that accepts that a user has won some amount of DREAM token at a particular time of a day (can be fractional tokens)',
 	params: {},
 	body: {
 		type: 'object',

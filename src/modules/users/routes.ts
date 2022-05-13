@@ -1,7 +1,4 @@
-import { getRepository } from 'typeorm';
-import { getToday } from '../../utils/helper';
-import { TokenTransaction } from '../token-transactions/entity';
-import { listUsersSchema, deleteUserSchema, addUserSchema, editUserSchema, readUserSchema, readUserWithTokensSchema } from './schema';
+import { listUsersSchema, deleteUserSchema, addUserSchema, editUserSchema, readUserSchema, readUserWithTokensSchema, userEarningsSchema, userCurrentStatsSchema } from './schema';
 
 export default function usersHandler(server, options, next) {
 	server.get(
@@ -41,15 +38,80 @@ export default function usersHandler(server, options, next) {
 	server.get('/todays_tokens_history/:_id', { schema: readUserWithTokensSchema }, async (req, res) => {
 		try {
 			const user = await server.db.users.findOne(req.params._id);
-			const token_transactions = await getRepository(TokenTransaction)
-				.createQueryBuilder('tt')
-				.where('DATE(tt.created_at) = :date AND tt.user_id = :user_id', { date: getToday(), user_id: user._id })
+			const token_transactions = await server.db.token_transactions.createQueryBuilder('tt')
+				.where('DATE(tt.created_at) = strftime(\'%Y-%m-%d\', \'now\') AND tt.user_id = :user_id', { user_id: user._id })
 				.getMany();
 
 			res.status(200).send({
 				...user,
 				token_transactions
 			});
+		} catch (error) {
+			console.log(error);
+			res.status(403).send({error});
+		}
+	});
+
+	server.get('/todays_earning/:_id', { schema: userEarningsSchema }, async (req, res) => {
+		try {			
+			const user = await server.db.users.findOne(req.params._id);
+			if(user){
+				const token_transactions: {
+					total_usd: number
+				} = await server.db.token_transactions.createQueryBuilder('tt')
+					.leftJoinAndSelect('tt.token', 'token')
+					.leftJoinAndSelect('tt.user', 'user')
+					.addSelect('SUM(tt.quantity)', 'total_qty')
+					.addSelect('ROUND(SUM(tt.quantity) * token.usd_per_unit, 4)', 'total_usd')
+					.where('DATE(tt.created_at) = strftime(\'%Y-%m-%d\', \'now\') AND tt.user_id = :user_id', { user_id: user._id })
+					.groupBy('tt.user_id')
+					.getRawOne(); 
+
+				res.status(200).send({
+					...user,
+					total: `${token_transactions.total_usd} USD`
+				});
+			} else {
+				throw new Error('Invalid User');
+			}
+		} catch (error) {
+			console.log(error);
+			res.status(403).send({error});
+		}
+	});
+
+
+	server.get('/stats/:_id', { schema: userCurrentStatsSchema }, async (req, res) => {
+		try {			
+			const user = await server.db.users.findOne(req.params._id, {relations: ['account']});
+
+			if(user){
+				const token_transactions: {
+					total_tokens: number
+				} = await server.db.token_transactions.createQueryBuilder('tt')
+					.addSelect('SUM(tt.quantity)', 'total_tokens')
+					.where('DATE(tt.created_at) = strftime(\'%Y-%m-%d\', \'now\') AND tt.user_id = :user_id', { user_id: user._id })
+					.groupBy('tt.user_id')
+					.getRawOne(); 
+
+				const account_ledgers: {
+					current_balance: number
+				} = await server.db.account_ledgers.createQueryBuilder('al')
+					.addSelect('ROUND(SUM(al.debit), 4)', 'debit_total')
+					.addSelect('ROUND(SUM(al.credit), 4)', 'credit_total')
+					.addSelect('ROUND(SUM(al.credit) - SUM(al.debit), 4)', 'current_balance')
+					.where('al.account_id = :account_id', { account_id: user.account._id })
+					.groupBy('al.account_id')
+					.getRawOne(); 
+					
+				res.status(200).send({
+					...user,
+					total_tokens_today: token_transactions.total_tokens,
+					current_balance: `${account_ledgers.current_balance} USD`
+				});
+			} else {
+				throw new Error('Invalid User');
+			}
 		} catch (error) {
 			console.log(error);
 			res.status(403).send({error});

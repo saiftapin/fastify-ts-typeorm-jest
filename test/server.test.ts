@@ -1,19 +1,17 @@
 import typeorm = require('typeorm');
 
-const products = [
+const user = [
 	{
 		_id: '5f2678dff22e1f4a3c0782ee',
-		name: 'JBL Headphone',
-		category: 'Electronic appliances',
-		unit: 1,
+		name: 'John'
 	}
 ];
 
 const dbMock = {
-	Product: {
-		find: jest.fn().mockReturnValue(products),
-		findOne: jest.fn().mockReturnValue(products[0]),
-		save: jest.fn().mockReturnValue(products[0]),
+	User: {
+		find: jest.fn().mockReturnValue(user),
+		findOne: jest.fn().mockReturnValue(user[0]),
+		save: jest.fn().mockReturnValue(user[0]),
 		remove: jest.fn(),
 	},
 };
@@ -48,40 +46,40 @@ describe('Server', () => {
 		);
 	});
 
-	test('GET /product/:_id returns one of product by _id', (done) => {
+	test('GET /user/:_id returns one of user by _id', (done) => {
 		server.inject(
 			{
 				method: 'GET',
-				url: `/product/${products[0]._id}`,
+				url: `/user/${user[0]._id}`,
 			},
 			(err, res) => {
 				expect(res.statusCode).toBe(200);
-				expect(dbMock.Product.findOne).toHaveBeenCalledWith(products[0]._id);
-				expect(JSON.parse(res.payload)).toEqual(products[0]);
+				expect(dbMock.User.findOne).toHaveBeenCalledWith(user[0]._id);
+				expect(JSON.parse(res.payload)).toEqual(user[0]);
 				done(err);
 			}
 		);
 	});
 
-	test('GET /product returns list of products', (done) => {
+	test('GET /user returns list of users', (done) => {
 		server.inject(
 			{
 				method: 'GET',
-				url: '/product',
+				url: '/user',
 			},
 			(err, res) => {
 				expect(res.statusCode).toBe(200);
-				expect(dbMock.Product.find).toHaveBeenCalledWith();
-				expect(JSON.parse(res.payload)[0]).toEqual(products[0]);
+				expect(dbMock.User.find).toHaveBeenCalledWith();
+				expect(JSON.parse(res.payload)[0]).toEqual(user[0]);
 				done(err);
 			}
 		);
 	});
 
-	test('Add Product POST /product', async (done) => {
+	test('Add user POST /user', async (done) => {
 		const res = await server.inject({
 			method: 'POST',
-			url: '/product',
+			url: '/user',
 			payload: {
 				_id: '5f2678dff22e1f4a3c9992ee',
 				name: 'Apple Headphone',
@@ -93,10 +91,10 @@ describe('Server', () => {
 		done();
 	});
 
-	test('Update Product POST /product/:id', async (done) => {
+	test('Update User POST /user/:id', async (done) => {
 		const res = await server.inject({
 			method: 'PUT',
-			url: '/product/5f2678dff22e1f4a3c0782ee',
+			url: '/user/5f2678dff22e1f4a3c0782ee',
 			payload: {
 				unit: 2
 			}
@@ -105,17 +103,17 @@ describe('Server', () => {
 		done();
 	});
 
-	test('DELETE /product/:id deletes a product', (done) => {
-		const { _id } = products[0];
+	test('DELETE /user/:id deletes a user', (done) => {
+		const { _id } = user[0];
 		server.inject(
 			{
 				method: 'DELETE',
-				url: `/product/${_id}`,
+				url: `/user/${_id}`,
 			},
 			(err, res) => {
 				expect(res.statusCode).toBe(200);
-				expect(dbMock.Product.findOne).toHaveBeenCalledWith(_id);
-				expect(dbMock.Product.remove).toHaveBeenCalledWith(products[0]);
+				expect(dbMock.User.findOne).toHaveBeenCalledWith(_id);
+				expect(dbMock.User.remove).toHaveBeenCalledWith(user[0]);
 				done(err);
 			}
 		);

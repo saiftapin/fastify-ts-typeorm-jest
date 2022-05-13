@@ -108,9 +108,9 @@ export const readUserSchema = {
 };
 
 export const readUserWithTokensSchema = {
-	summary: 'Read User',
+	summary: 'User\'s Todays Token History',
 	tags: ['user'],
-	description: 'read User',
+	description: 'API that returns the history of DREAM tokens a user has won for the current day so far',
 	params: {
 		type: 'object',
 		required: ['_id'],
@@ -135,6 +135,57 @@ export const readUserWithTokensSchema = {
 						}
 					}
 				}
+			}
+		}
+	}
+};
+
+
+export const userEarningsSchema = {
+	summary: 'Get User\'s Today\'s Earning In USD',
+	tags: ['user'],
+	description: 'API that returns the history of USD amounts a user has won till now (till the previous day)',
+	params: {
+		type: 'object',
+		required: ['_id'],
+		properties: {
+			_id: { type: 'string' }
+		}
+	},
+	response: {
+		200: {
+			type: 'object',
+			properties: {
+				_id: { type: 'string' },
+				name: { type: 'string' },
+				email: { type: 'string' },
+				total: { type: 'string' }
+			}
+		}
+	}
+};
+
+
+export const userCurrentStatsSchema = {
+	summary: 'Get User\'s Stats',
+	tags: ['user'],
+	description: 'API that returns the stats: sum of tokens won on the current day so far and the total value of USD a user has in his account',
+	params: {
+		type: 'object',
+		required: ['_id'],
+		properties: {
+			_id: { type: 'string' }
+		}
+	},
+	response: {
+		200: {
+			type: 'object',
+			properties: {
+				_id: { type: 'string' },
+				name: { type: 'string' },
+				email: { type: 'string' },
+				total_tokens_today: { type: 'number' },
+				current_balance: { type: 'string' }
 			}
 		}
 	}
