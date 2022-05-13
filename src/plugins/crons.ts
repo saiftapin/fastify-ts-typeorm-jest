@@ -6,7 +6,6 @@ import { User } from '../modules/users/entity';
 import { IServerWithDB } from './db';
 import { AccountTransaction } from '../modules/account-transactions/entity';
 import { getRepository } from 'typeorm';
-import { getTodayWithHour } from '../utils/helper';
 
 export default fp(async (server : IServerWithDB) => {
 	try {
@@ -105,72 +104,33 @@ export default fp(async (server : IServerWithDB) => {
 			});
 		};
 
-		let hasRecords = true;
-		while(hasRecords) {
-			const tokenRecords = await getTokenTransactions();
-			for await(const record of tokenRecords){
-				await addToAccounts(record);
-			}
-			hasRecords = tokenRecords.length > 0;
-		} 
 
+		server.register(fastifyCron, {
+			jobs: [
+				{
+					name: 'Process Token Each Hour',
+					// Only these two properties are required,
+					// the rest is from the node-cron API:
+					// https://github.com/kelektiv/node-cron#api
+					// https://crontab.guru/#10_*_*_*_*
+					cronTime: '10 * * * *', // Every hour at 10th minute
 
-		// server.register(fastifyCron, {
-		// 	jobs: [
-		// 		{
-		// 			name: 'Process Token Each Hour',
-		// 			// Only these two properties are required,
-		// 			// the rest is from the node-cron API:
-		// 			// https://github.com/kelektiv/node-cron#api
-		// 			cronTime: '1 * * * *', // Everyday at midnight UTC
-
-		// 			// Note: the callbacks (onTick & onComplete) take the server
-		// 			// as an argument, as opposed to nothing in the node-cron API:
-		// 			onTick: async (server: any) => {
-		// 				console.clear();
-		// 				// const tokens = await server?.db?.manager.query(`
-		// 				// SELECT 
-		// 				// 	SUM(quantity), user_id , token_id
-		// 				// FROM 
-		// 				// 	token_transaction tt
-		// 				// 	LEFT JOIN token t ON(t._id = tt.token_id)
-		// 				// WHERE 
-		// 				// 	DATE(tt.created_at) = DATE('now')
-		// 				// GROUP BY 
-		// 				// 	tt.user_id, tt.token_id
-		// 				// `).catch(console.log);
-
-
-		// 				const tokens = await server.db.connection
-		// 					.getRepository(TokenTransaction)
-		// 					.createQueryBuilder('tt')
-		// 					.addSelect('SUM(tt.quantity)', 'total_qty')
-		// 					.addSelect('SUM(tt.quantity) * token.usd_per_unit', 'total_usd')
-		// 					.leftJoinAndSelect('tt.token', 'token')
-		// 					.leftJoinAndSelect('tt.user', 'user')
-		// 					.where('DATE(tt.created_at) = DATE(\'now\')')
-		// 					.groupBy(['tt.user_id, tt.token_id'])
-		// 					.getRawMany();
-
-		// 				tokens.forEach(async (record) => {
-		// 					console.log(record)
-		// 					await server.db.transaction(async transactionalEntityManager => {
-		// 						const user = server.db.users.findOne(tokens.user__id) as User;
-		// 						if(typeof user.account == 'undefined'){
-		// 							console.log("Underfined @")
-		// 						}
-		// 						// await transactionalEntityManager.save(users);
-		// 						// await transactionalEntityManager.save(photos);
-		// 						// ...
-		// 					});
-		// 				});
-
-		// 				console.log(tokens);
-		// 			},
-		// 			startWhenReady: true
-		// 		}
-		// 	]
-		// });
+					// Note: the callbacks (onTick & onComplete) take the server
+					// as an argument, as opposed to nothing in the node-cron API:
+					onTick: async () => {
+						let hasRecords = true;
+						while(hasRecords) {
+							const tokenRecords = await getTokenTransactions();
+							for await(const record of tokenRecords){
+								await addToAccounts(record);
+							}
+							hasRecords = tokenRecords.length > 0;
+						} 
+					},
+					startWhenReady: true
+				}
+			]
+		});
 	} catch (error) {
 		console.log(error);
 		console.log('make sure you have set .env variables - see .env.sample');
